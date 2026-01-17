@@ -7,6 +7,7 @@ Requires authentication (run raiplay_auth.py --login first).
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -16,6 +17,24 @@ import requests
 # Constants
 # Token file is expected in current working directory
 TOKEN_FILE = Path.cwd() / "raiplay_tokens.json"
+
+# Color support (respect NO_COLOR environment variable)
+# https://no-color.org
+if "NO_COLOR" in os.environ:
+    COLOR_RESET = ""
+    COLOR_BOLD = ""
+    COLOR_ITALIC = ""
+    COLOR_CYAN_BOLD = ""
+    COLOR_YELLOW_BOLD = ""
+    COLOR_GREEN_BOLD = ""
+else:
+    COLOR_RESET = "\033[0m"
+    COLOR_BOLD = "\033[1m"
+    COLOR_ITALIC = "\033[3m"
+    COLOR_CYAN_BOLD = "\033[1;36m"
+    COLOR_YELLOW_BOLD = "\033[1;33m"
+    COLOR_GREEN_BOLD = "\033[1;32m"
+
 PALINSESTO_URL = "https://www.raiplay.it/palinsesto/app/old"
 ORA_IN_ONDA_URL = "https://www.raiplay.it/dl/palinsesti/oraInOnda.json"
 CHANNELS_URL = "https://www.raiplay.it/guidatv.json"
@@ -212,8 +231,8 @@ def print_program(prog, show_current=True, compact=False):
         marker = ">" if is_current else " "
         print(f"{marker} {time} {name}")
     else:
-        marker = "\033[1;32m>>>\033[0m" if is_current else "   "
-        name_fmt = f"\033[1m{name}\033[0m" if is_current else name
+        marker = f"{COLOR_GREEN_BOLD}>>>{COLOR_RESET}" if is_current else "   "
+        name_fmt = f"{COLOR_BOLD}{name}{COLOR_RESET}" if is_current else name
 
         if duration_fmt:
             print(f"{marker} {time} - {name_fmt} ({duration_fmt})")
@@ -231,7 +250,7 @@ def print_program(prog, show_current=True, compact=False):
                 # Truncate long descriptions
                 if len(subtitle) > 100:
                     subtitle = subtitle[:97] + "..."
-                print(f"       \033[3m{subtitle}\033[0m")
+                print(f"       {COLOR_ITALIC}{subtitle}{COLOR_RESET}")
 
 
 def cmd_schedule(args):
@@ -241,7 +260,7 @@ def cmd_schedule(args):
     channel = normalize_channel(args.canale)
     date = parse_date(args.data)
 
-    print(f"\033[1;36m=== {args.canale.upper()} - {date} ===\033[0m\n")
+    print(f"{COLOR_CYAN_BOLD}=== {args.canale.upper()} - {date} ==={COLOR_RESET}\n")
 
     data = fetch_schedule(session, channel, date)
 
@@ -307,7 +326,7 @@ def cmd_now(args):
         filter_channel = normalize_channel(args.canale)
         all_channels = [c for c in all_channels if filter_channel in c]
 
-    print(f"\033[1;36m=== Ora in onda - {datetime.now().strftime('%H:%M')} ===\033[0m\n")
+    print(f"{COLOR_CYAN_BOLD}=== Ora in onda - {datetime.now().strftime('%H:%M')} ==={COLOR_RESET}\n")
 
     for channel in all_channels:
         data = fetch_schedule(session, channel, today)
@@ -333,18 +352,18 @@ def cmd_now(args):
                         if args.compatto:
                             print(f"{channel_name}: {name}")
                         else:
-                            print(f"\033[1;33m{channel_name}\033[0m")
+                            print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
                             if duration:
-                                print(f"  {time} - \033[1m{name}\033[0m ({duration})")
+                                print(f"  {time} - {COLOR_BOLD}{name}{COLOR_RESET} ({duration})")
                             else:
-                                print(f"  {time} - \033[1m{name}\033[0m")
+                                print(f"  {time} - {COLOR_BOLD}{name}{COLOR_RESET}")
 
                             # Show description
                             description = current_prog.get("isPartOf", {}).get("description", "")
                             if description:
                                 if len(description) > 120:
                                     description = description[:117] + "..."
-                                print(f"  \033[3m{description}\033[0m")
+                                print(f"  {COLOR_ITALIC}{description}{COLOR_RESET}")
                             print()
 
 
@@ -358,7 +377,7 @@ def cmd_channels(args):
         print("Error fetching channels.", file=sys.stderr)
         return
 
-    print("\033[1;36m=== Canali disponibili ===\033[0m\n")
+    print(f"{COLOR_CYAN_BOLD}=== Canali disponibili ==={COLOR_RESET}\n")
 
     for channel in data.get("channels", []):
         label = channel.get("label", "")
@@ -373,7 +392,7 @@ def cmd_prime_time(args):
     date = parse_date(args.data)
     main_channels = ["rai-1", "rai-2", "rai-3"]
 
-    print(f"\033[1;36m=== Prima Serata - {date} ===\033[0m\n")
+    print(f"{COLOR_CYAN_BOLD}=== Prima Serata - {date} ==={COLOR_RESET}\n")
 
     for channel in main_channels:
         data = fetch_schedule(session, channel, date)
@@ -382,7 +401,7 @@ def cmd_prime_time(args):
             continue
 
         for channel_name, channel_data in data.items():
-            print(f"\033[1;33m{channel_name}\033[0m")
+            print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
 
             for day_data in channel_data:
                 for palinsesto in day_data.get("palinsesto", []):
@@ -416,7 +435,7 @@ def cmd_search(args):
     channels = ["rai-1", "rai-2", "rai-3", "rai-4", "rai-5",
                 "rai-movie", "rai-premium", "rai-storia"]
 
-    print(f"\033[1;36m=== Ricerca: '{args.cerca}' - {date} ===\033[0m\n")
+    print(f"{COLOR_CYAN_BOLD}=== Ricerca: '{args.cerca}' - {date} ==={COLOR_RESET}\n")
 
     found = False
 
@@ -441,8 +460,8 @@ def cmd_search(args):
                                 time = prog.get("timePublished", "??:??")
                                 duration = format_duration(prog.get("duration", ""))
 
-                                print(f"\033[1;33m{channel_name}\033[0m - {time}")
-                                print(f"  \033[1m{name}\033[0m", end="")
+                                print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET} - {time}")
+                                print(f"  {COLOR_BOLD}{name}{COLOR_RESET}", end="")
                                 if duration:
                                     print(f" ({duration})")
                                 else:
