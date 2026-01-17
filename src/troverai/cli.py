@@ -277,49 +277,75 @@ def cmd_schedule(args):
                     print("No programs found for the specified time range.")
 
 
+def find_current_program(programs):
+    """Find the currently airing program from a list of programs."""
+    for prog in programs:
+        if prog:
+            time_str = prog.get("timePublished", "")
+            duration_str = prog.get("duration", "")
+            if is_current_program(time_str, duration_str):
+                return prog
+    return None
+
+
 def cmd_now(args):
     """Show what's currently on air."""
     session = get_session()
 
-    data = fetch_now_on_air(session)
+    # Use schedule data instead of oraInOnda.json (which can be stale)
+    today = datetime.now().strftime("%d-%m-%Y")
 
-    if not data:
-        print("Error fetching current programs.", file=sys.stderr)
-        return
-
-    print(f"\033[1;36m=== Ora in onda - {datetime.now().strftime('%H:%M')} ===\033[0m\n")
-
-    channels = data.get("dirette", [])
+    # Main channels to check
+    all_channels = [
+        "rai-1", "rai-2", "rai-3", "rai-4", "rai-5",
+        "rai-movie", "rai-premium", "rai-gulp", "rai-yoyo",
+        "rai-storia", "rai-scuola", "rai-news-24", "rai-sport"
+    ]
 
     # Filter by channel if specified
     if args.canale:
-        filter_channel = args.canale.lower().replace("-", " ").replace("rai ", "rai")
-        channels = [c for c in channels if filter_channel in c.get("channel", "").lower().replace(" ", "")]
+        filter_channel = normalize_channel(args.canale)
+        all_channels = [c for c in all_channels if filter_channel in c]
 
-    for channel in channels:
-        channel_name = channel.get("channel", "Unknown")
-        item = channel.get("currentItem", {})
+    print(f"\033[1;36m=== Ora in onda - {datetime.now().strftime('%H:%M')} ===\033[0m\n")
 
-        name = item.get("name", "")
-        if not name:
-            is_part_of = item.get("isPartOf", {})
-            name = is_part_of.get("name", "Unknown")
+    for channel in all_channels:
+        data = fetch_schedule(session, channel, today)
 
-        time = item.get("timePublished", "")
+        if not data:
+            continue
 
-        if args.compatto:
-            print(f"{channel_name}: {name}")
-        else:
-            print(f"\033[1;33m{channel_name}\033[0m")
-            print(f"  {time} - \033[1m{name}\033[0m")
+        for channel_name, channel_data in data.items():
+            for day_data in channel_data:
+                for palinsesto in day_data.get("palinsesto", []):
+                    programs = palinsesto.get("programmi", [])
 
-            # Show description
-            description = item.get("isPartOf", {}).get("description", "")
-            if description and not args.compatto:
-                if len(description) > 120:
-                    description = description[:117] + "..."
-                print(f"  \033[3m{description}\033[0m")
-            print()
+                    current_prog = find_current_program(programs)
+
+                    if current_prog:
+                        name = current_prog.get("name", "")
+                        if not name:
+                            name = current_prog.get("isPartOf", {}).get("name", "Unknown")
+
+                        time = current_prog.get("timePublished", "")
+                        duration = format_duration(current_prog.get("duration", ""))
+
+                        if args.compatto:
+                            print(f"{channel_name}: {name}")
+                        else:
+                            print(f"\033[1;33m{channel_name}\033[0m")
+                            if duration:
+                                print(f"  {time} - \033[1m{name}\033[0m ({duration})")
+                            else:
+                                print(f"  {time} - \033[1m{name}\033[0m")
+
+                            # Show description
+                            description = current_prog.get("isPartOf", {}).get("description", "")
+                            if description:
+                                if len(description) > 120:
+                                    description = description[:117] + "..."
+                                print(f"  \033[3m{description}\033[0m")
+                            print()
 
 
 def cmd_channels(args):
