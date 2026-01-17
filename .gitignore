@@ -215,6 +215,28 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# Vim
+
+## vim - Swap
+[._]*.s[a-v][a-z]
+!*.svg
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+## vim - Session
+Session.vim
+Sessionx.vim
+
+## vim - Temporary
+.netrwhist
+*~
+## vim - Auto-generated tag files
+tags
+## vim - Persistent undo
+[._]*.un~
+
 # troverai specific configs
 *.json
 cookies.txt
