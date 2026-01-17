@@ -21,11 +21,10 @@ LOGIN_URL = "https://www.raiplay.it/raisso/login/domain/app/social"
 # Refresh URL uses www.rai.it base (from raiSsoServicesNew.raiSsoBaseUrl)
 DEFAULT_REFRESH_URL = "https://www.rai.it/raisso/user/token/refresh"
 
-# File paths (relative to script location)
-SCRIPT_DIR = Path(__file__).parent
-TOKEN_FILE = SCRIPT_DIR / "raiplay_tokens.json"
-CONFIG_CACHE_FILE = SCRIPT_DIR / "raiplay_config_cache.json"
-ENV_FILE = SCRIPT_DIR / ".env"
+# File paths (relative to current working directory)
+TOKEN_FILE = Path.cwd() / "raiplay_tokens.json"
+CONFIG_CACHE_FILE = Path.cwd() / "raiplay_config_cache.json"
+ENV_FILE = Path.cwd() / ".env"
 
 # Config cache duration (1 day)
 CONFIG_CACHE_DURATION = timedelta(days=1)
