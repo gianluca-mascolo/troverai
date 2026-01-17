@@ -22,7 +22,7 @@ repos:
       entry: >-
         env -i HOME="$HOME" SHELL="$SHELL" USER="$USER"
         bash --restricted --posix --norc --noprofile -c
-        'set -o pipefail; git rev-parse --abbrev-ref HEAD | grep -qE "^((master|main)|(feat(ure)?|(bug|hot)?fix|rel(ease)?|chore)/([a-z][-]?([a-z0-9]+[-]?)+)[a-z0-9])$"'
+        'set -o pipefail; git rev-parse --abbrev-ref HEAD | grep -qE "^((master|main)|(feat(ure)?|(bug|hot)?fix|rel(ease)?|chore|docs)/([a-z][-]?([a-z0-9]+[-]?)+)[a-z0-9])$"'
       language: system
       pass_filenames: false
       always_run: true
