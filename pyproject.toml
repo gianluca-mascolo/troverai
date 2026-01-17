@@ -5,6 +5,7 @@ description = "TroveRAI cerca la programmazione TV RAI"
 authors = [
     {name = "Gianluca Mascolo",email = "gianluca.mascolo@gmail.com"}
 ]
+license = "GPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
 dependencies = [
