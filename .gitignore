@@ -237,7 +237,15 @@ tags
 ## vim - Persistent undo
 [._]*.un~
 
+# Claude Code local settings
+.claude/
+
+# Environment variants (covers .env.local, .env.production, etc.)
+.env*
+!.env.example
+
 # troverai specific configs
-*.json
+# Convention: prefix sensitive JSON files with "rai" (e.g., raiplay_tokens.json)
+rai*.json
 cookies.txt
-*.html
+login_page.html
