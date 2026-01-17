@@ -47,8 +47,12 @@ Development experiments folder (not part of the main package). Contains:
 
 ## Conventions
 
-### Git Commits
-Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, etc.
+### Git Workflow
+- **FORBIDDEN**: Never push directly to `main` branch. Always open a pull request.
+- **Branch names**: Must follow [Conventional Branch](https://conventional-branch.github.io) naming (e.g., `feat/add-json-output`, `fix/token-refresh`, `docs/update-readme`).
+- **Commit messages**: Must follow [Conventional Commits](https://www.conventionalcommits.org/) (e.g., `feat:`, `fix:`, `docs:`, `refactor:`).
+- **Pull request titles**: Must start with conventional commit prefix (e.g., `feat: add JSON output`, `fix: token refresh error`).
+- **PR merging**: Claude must NEVER ask to merge a pull request. All PRs will be reviewed and merged by a human on GitHub.
 
 ### Sensitive Files
 JSON files containing tokens/cache should be prefixed with `rai` (e.g., `raiplay_tokens.json`) - these are gitignored via `rai*.json` pattern.
