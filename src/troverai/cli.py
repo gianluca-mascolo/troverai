@@ -260,15 +260,24 @@ def cmd_schedule(args):
     channel = normalize_channel(args.canale)
     date = parse_date(args.data)
 
-    print(f"{COLOR_CYAN_BOLD}=== {args.canale.upper()} - {date} ==={COLOR_RESET}\n")
+    if not args.json:
+        print(f"{COLOR_CYAN_BOLD}=== {args.canale.upper()} - {date} ==={COLOR_RESET}\n")
 
     data = fetch_schedule(session, channel, date)
 
     if not data:
-        print("No schedule data available.")
+        if args.json:
+            output_json([])
+        else:
+            print("No schedule data available.")
         return
 
-    # Parse the nested structure
+    # For JSON, output the raw API response
+    if args.json:
+        output_json(data)
+        return
+
+    # Parse the nested structure for display
     for channel_name, channel_data in data.items():
         for day_data in channel_data:
             for palinsesto in day_data.get("palinsesto", []):
@@ -307,6 +316,11 @@ def find_current_program(programs):
     return None
 
 
+def output_json(data):
+    """Print data as JSON."""
+    print(json.dumps(data, ensure_ascii=False, indent=2))
+
+
 def cmd_now(args):
     """Show what's currently on air."""
     session = get_session()
@@ -326,7 +340,11 @@ def cmd_now(args):
         filter_channel = normalize_channel(args.canale)
         all_channels = [c for c in all_channels if filter_channel in c]
 
-    print(f"{COLOR_CYAN_BOLD}=== Ora in onda - {datetime.now().strftime('%H:%M')} ==={COLOR_RESET}\n")
+    # Collect programs for JSON output
+    json_programs = []
+
+    if not args.json:
+        print(f"{COLOR_CYAN_BOLD}=== Ora in onda - {datetime.now().strftime('%H:%M')} ==={COLOR_RESET}\n")
 
     for channel in all_channels:
         data = fetch_schedule(session, channel, today)
@@ -342,29 +360,35 @@ def cmd_now(args):
                     current_prog = find_current_program(programs)
 
                     if current_prog:
-                        name = current_prog.get("name", "")
-                        if not name:
-                            name = current_prog.get("isPartOf", {}).get("name", "Unknown")
-
-                        time = current_prog.get("timePublished", "")
-                        duration = format_duration(current_prog.get("duration", ""))
-
-                        if args.compatto:
-                            print(f"{channel_name}: {name}")
+                        if args.json:
+                            json_programs.append(current_prog)
                         else:
-                            print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
-                            if duration:
-                                print(f"  {time} - {COLOR_BOLD}{name}{COLOR_RESET} ({duration})")
-                            else:
-                                print(f"  {time} - {COLOR_BOLD}{name}{COLOR_RESET}")
+                            name = current_prog.get("name", "")
+                            if not name:
+                                name = current_prog.get("isPartOf", {}).get("name", "Unknown")
 
-                            # Show description
-                            description = current_prog.get("isPartOf", {}).get("description", "")
-                            if description:
-                                if len(description) > 120:
-                                    description = description[:117] + "..."
-                                print(f"  {COLOR_ITALIC}{description}{COLOR_RESET}")
-                            print()
+                            time = current_prog.get("timePublished", "")
+                            duration = format_duration(current_prog.get("duration", ""))
+
+                            if args.compatto:
+                                print(f"{channel_name}: {name}")
+                            else:
+                                print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
+                                if duration:
+                                    print(f"  {time} - {COLOR_BOLD}{name}{COLOR_RESET} ({duration})")
+                                else:
+                                    print(f"  {time} - {COLOR_BOLD}{name}{COLOR_RESET}")
+
+                                # Show description
+                                description = current_prog.get("isPartOf", {}).get("description", "")
+                                if description:
+                                    if len(description) > 120:
+                                        description = description[:117] + "..."
+                                    print(f"  {COLOR_ITALIC}{description}{COLOR_RESET}")
+                                print()
+
+    if args.json:
+        output_json(json_programs)
 
 
 def cmd_channels(args):
@@ -374,15 +398,21 @@ def cmd_channels(args):
     data = fetch_channels(session)
 
     if not data:
-        print("Error fetching channels.", file=sys.stderr)
+        if args.json:
+            output_json([])
+        else:
+            print("Error fetching channels.", file=sys.stderr)
         return
 
-    print(f"{COLOR_CYAN_BOLD}=== Canali disponibili ==={COLOR_RESET}\n")
+    if args.json:
+        output_json(data)
+    else:
+        print(f"{COLOR_CYAN_BOLD}=== Canali disponibili ==={COLOR_RESET}\n")
 
-    for channel in data.get("channels", []):
-        label = channel.get("label", "")
-        path = channel.get("absolute_path", "")
-        print(f"  {label:20} (--canale {path})")
+        for channel in data.get("channels", []):
+            label = channel.get("label", "")
+            path = channel.get("absolute_path", "")
+            print(f"  {label:20} (--canale {path})")
 
 
 def cmd_prime_time(args):
@@ -392,7 +422,11 @@ def cmd_prime_time(args):
     date = parse_date(args.data)
     main_channels = ["rai-1", "rai-2", "rai-3"]
 
-    print(f"{COLOR_CYAN_BOLD}=== Prima Serata - {date} ==={COLOR_RESET}\n")
+    # Collect raw data for JSON output
+    json_data = {}
+
+    if not args.json:
+        print(f"{COLOR_CYAN_BOLD}=== Prima Serata - {date} ==={COLOR_RESET}\n")
 
     for channel in main_channels:
         data = fetch_schedule(session, channel, date)
@@ -400,8 +434,12 @@ def cmd_prime_time(args):
         if not data:
             continue
 
+        if args.json:
+            json_data[channel] = data
+
         for channel_name, channel_data in data.items():
-            print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
+            if not args.json:
+                print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
 
             for day_data in channel_data:
                 for palinsesto in day_data.get("palinsesto", []):
@@ -412,17 +450,22 @@ def cmd_prime_time(args):
                         if prog:
                             time = prog.get("timePublished", "00:00")
                             if "20:" <= time <= "23:59":
-                                name = prog.get("name", "")
-                                if not name:
-                                    name = prog.get("isPartOf", {}).get("name", "Unknown")
-                                duration = format_duration(prog.get("duration", ""))
+                                if not args.json:
+                                    name = prog.get("name", "")
+                                    if not name:
+                                        name = prog.get("isPartOf", {}).get("name", "Unknown")
+                                    duration = format_duration(prog.get("duration", ""))
 
-                                print(f"  {time} - {name}", end="")
-                                if duration:
-                                    print(f" ({duration})")
-                                else:
-                                    print()
-            print()
+                                    print(f"  {time} - {name}", end="")
+                                    if duration:
+                                        print(f" ({duration})")
+                                    else:
+                                        print()
+            if not args.json:
+                print()
+
+    if args.json:
+        output_json(json_data)
 
 
 def cmd_search(args):
@@ -435,7 +478,11 @@ def cmd_search(args):
     channels = ["rai-1", "rai-2", "rai-3", "rai-4", "rai-5",
                 "rai-movie", "rai-premium", "rai-storia"]
 
-    print(f"{COLOR_CYAN_BOLD}=== Ricerca: '{args.cerca}' - {date} ==={COLOR_RESET}\n")
+    # Collect raw programs for JSON output
+    json_programs = []
+
+    if not args.json:
+        print(f"{COLOR_CYAN_BOLD}=== Ricerca: '{args.cerca}' - {date} ==={COLOR_RESET}\n")
 
     found = False
 
@@ -457,19 +504,24 @@ def cmd_search(args):
                                 name = prog.get("isPartOf", {}).get("name", "")
 
                             if search_term in name.lower():
-                                time = prog.get("timePublished", "??:??")
-                                duration = format_duration(prog.get("duration", ""))
-
-                                print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET} - {time}")
-                                print(f"  {COLOR_BOLD}{name}{COLOR_RESET}", end="")
-                                if duration:
-                                    print(f" ({duration})")
-                                else:
-                                    print()
-                                print()
                                 found = True
+                                if args.json:
+                                    json_programs.append(prog)
+                                else:
+                                    time = prog.get("timePublished", "??:??")
+                                    duration = format_duration(prog.get("duration", ""))
 
-    if not found:
+                                    print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET} - {time}")
+                                    print(f"  {COLOR_BOLD}{name}{COLOR_RESET}", end="")
+                                    if duration:
+                                        print(f" ({duration})")
+                                    else:
+                                        print()
+                                    print()
+
+    if args.json:
+        output_json(json_programs)
+    elif not found:
         print(f"Nessun programma trovato con '{args.cerca}'")
 
 
@@ -516,6 +568,8 @@ Date formats:
                         help="Filter programs until time")
     parser.add_argument("--compatto", action="store_true",
                         help="Compact output format")
+    parser.add_argument("--json", action="store_true",
+                        help="Output in JSON format")
 
     args = parser.parse_args()
 
