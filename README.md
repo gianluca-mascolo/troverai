@@ -88,6 +88,7 @@ poetry run troverai --canali
 | `--dalle HH:MM` | | Filtra programmi a partire da un orario |
 | `--alle HH:MM` | | Filtra programmi fino a un orario |
 | `--compatto` | | Formato di output compatto |
+| `--json` | | Output in formato JSON (dati API grezzi) |
 
 ## Formati data supportati
 
@@ -103,6 +104,31 @@ Per disabilitare l'output colorato, imposta la variabile d'ambiente `NO_COLOR`:
 
 ```bash
 NO_COLOR=1 poetry run troverai --ora
+```
+
+## Output JSON
+
+Con il flag `--json` è possibile ottenere l'output in formato JSON, contenente i dati grezzi delle API RaiPlay senza alcuna semplificazione o filtro.
+
+```bash
+# Palinsesto completo in JSON
+poetry run troverai --canale rai-1 --json
+
+# Programmi in onda adesso in JSON
+poetry run troverai --ora --json
+
+# Lista canali in JSON
+poetry run troverai --canali --json
+
+# Ricerca in JSON
+poetry run troverai --cerca "film" --json
+```
+
+L'output JSON può essere elaborato con strumenti come `jq`:
+
+```bash
+# Estrai solo i nomi dei programmi in prima serata
+poetry run troverai --prima-serata --json | jq '.. | .name? // empty' | head -10
 ```
 
 ## Struttura del progetto
