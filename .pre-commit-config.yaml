@@ -1,0 +1,28 @@
+---
+default_stages: [pre-commit, manual]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.11.6
+    hooks:
+      - id: commitizen
+      - id: commitizen-branch
+        stages: [pre-push]
+  - repo: local
+    hooks:
+    - id: conventional-branch-name
+      name: conventional-branch-name
+      entry: >-
+        env -i HOME="$HOME" SHELL="$SHELL" USER="$USER"
+        bash --restricted --posix --norc --noprofile -c
+        'set -o pipefail; git rev-parse --abbrev-ref HEAD | grep -qE "^((master|main)|(feat(ure)?|(bug|hot)?fix|rel(ease)?|chore)/([a-z][-]?([a-z0-9]+[-]?)+)[a-z0-9])$"'
+      language: system
+      pass_filenames: false
+      always_run: true
