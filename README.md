@@ -2,6 +2,10 @@
 
 **TroveRAI** è uno strumento da riga di comando per consultare la programmazione TV della RAI.
 
+## Vibe Coding
+
+Questo progetto nasce come esperimento di [vibe coding](https://en.wikipedia.org/wiki/Vibe_coding): tutto il codice Python è stato prodotto interamente tramite [Claude AI](https://claude.ai/) utilizzando [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+
 ## Requisiti
 
 - Python >= 3.10
