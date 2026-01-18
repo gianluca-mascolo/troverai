@@ -33,17 +33,13 @@ Uses PEP-compliant `src/` layout:
 - `src/troverai/__main__.py` - Entry point for `python -m troverai`
 - `src/troverai/__init__.py` - Package metadata
 
-### Authentication
-The CLI requires a valid `raiplay_tokens.json` file in the current working directory. This token file is created by `SperimenteRAI/raiplay_auth.py` (experimental, run separately):
-```bash
-python SperimenteRAI/raiplay_auth.py --login  # Creates raiplay_tokens.json
-```
-
 ### SperimenteRAI/
 Development experiments folder (not part of the main package). Contains:
-- `raiplay_auth.py` - Authentication helper (creates tokens)
+- `raiplay_auth.py` - Authentication helper for RaiPlay account features
 - `raiplay.py` - RaiPlay catalog query tool
 - `jsonfix.py` - JSON repair utility
+
+Note: The main CLI does not require authentication. The palinsesto APIs are public.
 
 ## Conventions
 
@@ -55,7 +51,7 @@ Development experiments folder (not part of the main package). Contains:
 - **PR merging**: Claude must NEVER ask to merge a pull request. All PRs will be reviewed and merged by a human on GitHub.
 
 ### Sensitive Files
-JSON files containing tokens/cache should be prefixed with `rai` (e.g., `raiplay_tokens.json`) - these are gitignored via `rai*.json` pattern.
+JSON files containing tokens/cache (used by experimental scripts in SperimenteRAI/) should be prefixed with `rai` (e.g., `raiplay_tokens.json`) - these are gitignored via `rai*.json` pattern.
 
 ### Colors
 Respect `NO_COLOR` environment variable. Use the color constants defined in `cli.py` (`COLOR_BOLD`, `COLOR_RESET`, etc.) instead of hardcoded ANSI codes.
