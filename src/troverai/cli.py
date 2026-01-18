@@ -265,6 +265,9 @@ def cmd_schedule(args):
             filtered.append(event)
         events = filtered
 
+    # Filter by typology/genre
+    events = filter_by_dfp(events, args.tipo, args.genere)
+
     # Show programs
     for event in events:
         if event:  # Skip empty entries
@@ -284,6 +287,26 @@ def find_current_program(events):
             if is_current_program(time_str, duration_str):
                 return event
     return None
+
+
+def filter_by_dfp(events, tipo=None, genere=None):
+    """Filter events by dfp typology and/or genre."""
+    if not tipo and not genere:
+        return events
+
+    filtered = []
+    for event in events:
+        if not event:
+            continue
+        dfp = event.get("dfp", {})
+
+        if tipo and dfp.get("escaped_typology_name", "").lower() != tipo.lower():
+            continue
+        if genere and dfp.get("escaped_genre_name", "").lower() != genere.lower():
+            continue
+
+        filtered.append(event)
+    return filtered
 
 
 def output_json(data):
@@ -326,6 +349,11 @@ def cmd_now(args):
         events = data.get("events", [])
 
         current_prog = find_current_program(events)
+
+        # Filter by typology/genre
+        if current_prog:
+            filtered = filter_by_dfp([current_prog], args.tipo, args.genere)
+            current_prog = filtered[0] if filtered else None
 
         if current_prog:
             if args.json:
@@ -405,23 +433,26 @@ def cmd_prime_time(args):
         channel_name = data.get("channel", channel)
         events = data.get("events", [])
 
+        # Filter for prime time (20:00 - 23:59)
+        prime_events = [e for e in events if e and "20:" <= e.get("hour", "00:00") <= "23:59"]
+
+        # Filter by typology/genre
+        prime_events = filter_by_dfp(prime_events, args.tipo, args.genere)
+
         if not args.json:
             print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
 
-        # Filter for prime time (20:00 - 23:59)
-        for event in events:
-            if event:
+        for event in prime_events:
+            if not args.json:
+                name = event.get("name", "Unknown")
                 time = event.get("hour", "00:00")
-                if "20:" <= time <= "23:59":
-                    if not args.json:
-                        name = event.get("name", "Unknown")
-                        duration = format_duration(event.get("duration", ""))
+                duration = format_duration(event.get("duration", ""))
 
-                        print(f"  {time} - {name}", end="")
-                        if duration:
-                            print(f" ({duration})")
-                        else:
-                            print()
+                print(f"  {time} - {name}", end="")
+                if duration:
+                    print(f" ({duration})")
+                else:
+                    print()
 
         if not args.json:
             print()
@@ -457,25 +488,28 @@ def cmd_search(args):
         channel_name = data.get("channel", channel)
         events = data.get("events", [])
 
-        for event in events:
-            if event:
-                name = event.get("name", "")
+        # Filter by name
+        matching = [e for e in events if e and search_term in e.get("name", "").lower()]
 
-                if search_term in name.lower():
-                    found = True
-                    if args.json:
-                        json_programs.append(event)
-                    else:
-                        time = event.get("hour", "??:??")
-                        duration = format_duration(event.get("duration", ""))
+        # Filter by typology/genre
+        matching = filter_by_dfp(matching, args.tipo, args.genere)
 
-                        print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET} - {time}")
-                        print(f"  {COLOR_BOLD}{name}{COLOR_RESET}", end="")
-                        if duration:
-                            print(f" ({duration})")
-                        else:
-                            print()
-                        print()
+        for event in matching:
+            found = True
+            name = event.get("name", "")
+            if args.json:
+                json_programs.append(event)
+            else:
+                time = event.get("hour", "??:??")
+                duration = format_duration(event.get("duration", ""))
+
+                print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET} - {time}")
+                print(f"  {COLOR_BOLD}{name}{COLOR_RESET}", end="")
+                if duration:
+                    print(f" ({duration})")
+                else:
+                    print()
+                print()
 
     if args.json:
         output_json(json_programs)
@@ -528,6 +562,10 @@ Date formats:
                         help="Compact output format")
     parser.add_argument("--json", action="store_true",
                         help="Output in JSON format")
+    parser.add_argument("--tipo", "-t", metavar="TIPO",
+                        help="Filter by typology (Film, ProgrammiTv, SerieTV)")
+    parser.add_argument("--genere", "-g", metavar="GENERE",
+                        help="Filter by genre (Commedia, Drammatico, AzioneAvventura, etc.)")
 
     args = parser.parse_args()
 
