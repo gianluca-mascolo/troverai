@@ -55,7 +55,7 @@ Date formats:
     parser.add_argument(
         "--data",
         "-d",
-        default="oggi",
+        default=None,
         help="Date (oggi/domani/dd-mm-yyyy, default: oggi)",
     )
     parser.add_argument(
