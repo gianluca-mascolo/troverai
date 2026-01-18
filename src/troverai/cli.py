@@ -54,10 +54,7 @@ CHANNEL_MAP = {
 def get_session():
     """Create a requests session."""
     session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "application/json"
-    })
+    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Accept": "application/json"})
     return session
 
 
@@ -153,7 +150,7 @@ def format_duration(duration_str):
 
     parts = duration_str.split(":")
     if len(parts) == 3:
-        h, m, s = int(parts[0]), int(parts[1]), int(parts[2])
+        h, m, _ = int(parts[0]), int(parts[1]), int(parts[2])
         if h > 0:
             return f"{h}h{m:02d}m"
         else:
@@ -170,9 +167,7 @@ def is_current_program(time_str, duration_str):
 
     try:
         # Parse program start time
-        prog_time = datetime.strptime(time_str, "%H:%M").replace(
-            year=now.year, month=now.month, day=now.day
-        )
+        prog_time = datetime.strptime(time_str, "%H:%M").replace(year=now.year, month=now.month, day=now.day)
 
         # Parse duration
         if duration_str:
@@ -271,8 +266,7 @@ def cmd_schedule(args):
     # Show programs
     for event in events:
         if event:  # Skip empty entries
-            print_program(event, show_current=(date == datetime.now().strftime("%d-%m-%Y")),
-                         compact=args.compatto)
+            print_program(event, show_current=(date == datetime.now().strftime("%d-%m-%Y")), compact=args.compatto)
 
     if not events:
         print("No programs found for the specified time range.")
@@ -322,11 +316,7 @@ def cmd_now(args):
     is_today = date == datetime.now().strftime("%d-%m-%Y")
 
     # Main channels to check
-    all_channels = [
-        "rai-1", "rai-2", "rai-3", "rai-4", "rai-5",
-        "rai-movie", "rai-premium", "rai-gulp", "rai-yoyo",
-        "rai-storia", "rai-scuola", "rai-news-24", "rai-sport"
-    ]
+    all_channels = ["rai-1", "rai-2", "rai-3", "rai-4", "rai-5", "rai-movie", "rai-premium", "rai-gulp", "rai-yoyo", "rai-storia", "rai-scuola", "rai-news-24", "rai-sport"]
 
     # Filter by channel if specified
     if args.canale:
@@ -495,8 +485,7 @@ def cmd_search(args):
     date = parse_date(args.data)
     search_term = args.cerca.lower()
 
-    channels = ["rai-1", "rai-2", "rai-3", "rai-4", "rai-5",
-                "rai-movie", "rai-premium", "rai-storia"]
+    channels = ["rai-1", "rai-2", "rai-3", "rai-4", "rai-5", "rai-movie", "rai-premium", "rai-storia"]
 
     # Collect raw programs for JSON output
     json_programs = []
@@ -563,36 +552,24 @@ Examples:
 Date formats:
   oggi, today, domani, tomorrow, ieri, yesterday
   dd-mm-yyyy, dd/mm/yyyy, +1, -2 (offset from today)
-        """
+        """,
     )
 
     # Main commands
-    parser.add_argument("--ora", "-o", action="store_true",
-                        help="Show what's currently on air")
-    parser.add_argument("--canale", "-c", metavar="NOME",
-                        help="Show schedule for a specific channel")
-    parser.add_argument("--canali", action="store_true",
-                        help="List available channels")
-    parser.add_argument("--prima-serata", "-p", action="store_true",
-                        help="Show prime time (20:00-23:00) on Rai 1/2/3")
-    parser.add_argument("--cerca", "-s", metavar="TESTO",
-                        help="Search for a program by name")
+    parser.add_argument("--ora", "-o", action="store_true", help="Show what's currently on air")
+    parser.add_argument("--canale", "-c", metavar="NOME", help="Show schedule for a specific channel")
+    parser.add_argument("--canali", action="store_true", help="List available channels")
+    parser.add_argument("--prima-serata", "-p", action="store_true", help="Show prime time (20:00-23:00) on Rai 1/2/3")
+    parser.add_argument("--cerca", "-s", metavar="TESTO", help="Search for a program by name")
 
     # Options
-    parser.add_argument("--data", "-d", default="oggi",
-                        help="Date (oggi/domani/dd-mm-yyyy, default: oggi)")
-    parser.add_argument("--dalle", metavar="HH:MM",
-                        help="Filter programs starting from time")
-    parser.add_argument("--alle", metavar="HH:MM",
-                        help="Filter programs until time")
-    parser.add_argument("--compatto", action="store_true",
-                        help="Compact output format")
-    parser.add_argument("--json", action="store_true",
-                        help="Output in JSON format")
-    parser.add_argument("--tipo", "-t", metavar="TIPO",
-                        help="Filter by typology (Film, ProgrammiTv, SerieTV)")
-    parser.add_argument("--genere", "-g", metavar="GENERE",
-                        help="Filter by genre (Commedia, Drammatico, AzioneAvventura, etc.)")
+    parser.add_argument("--data", "-d", default="oggi", help="Date (oggi/domani/dd-mm-yyyy, default: oggi)")
+    parser.add_argument("--dalle", metavar="HH:MM", help="Filter programs starting from time")
+    parser.add_argument("--alle", metavar="HH:MM", help="Filter programs until time")
+    parser.add_argument("--compatto", action="store_true", help="Compact output format")
+    parser.add_argument("--json", action="store_true", help="Output in JSON format")
+    parser.add_argument("--tipo", "-t", metavar="TIPO", help="Filter by typology (Film, ProgrammiTv, SerieTV)")
+    parser.add_argument("--genere", "-g", metavar="GENERE", help="Filter by genre (Commedia, Drammatico, AzioneAvventura, etc.)")
 
     args = parser.parse_args()
 
