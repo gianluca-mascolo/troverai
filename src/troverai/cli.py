@@ -2,7 +2,6 @@
 TroveRAI CLI - TV Schedule viewer for RaiPlay
 
 Fetches and displays TV schedules from RaiPlay.
-Requires authentication (run raiplay_auth.py --login first).
 """
 
 import argparse
@@ -10,13 +9,8 @@ import json
 import os
 import sys
 from datetime import datetime, timedelta
-from pathlib import Path
 
 import requests
-
-# Constants
-# Token file is expected in current working directory
-TOKEN_FILE = Path.cwd() / "raiplay_tokens.json"
 
 # Color support (respect NO_COLOR environment variable)
 # https://no-color.org
@@ -57,24 +51,11 @@ CHANNEL_MAP = {
 }
 
 
-def load_tokens():
-    """Load authentication tokens from file."""
-    if not TOKEN_FILE.exists():
-        print("Error: Not authenticated. Run 'raiplay_auth.py --login' first.", file=sys.stderr)
-        sys.exit(1)
-
-    with open(TOKEN_FILE) as f:
-        return json.load(f)
-
-
 def get_session():
-    """Create an authenticated requests session."""
-    tokens = load_tokens()
-
+    """Create a requests session."""
     session = requests.Session()
     session.headers.update({
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Authorization": f"Bearer {tokens['jwt_token']}",
         "Accept": "application/json"
     })
     return session
