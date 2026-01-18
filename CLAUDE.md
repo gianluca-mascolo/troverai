@@ -18,6 +18,11 @@ poetry run troverai --canale rai-1     # Today's schedule for Rai 1
 poetry run troverai --prima-serata     # Prime time on main channels
 poetry run troverai --cerca "film"     # Search for programs
 
+# Filter by typology and genre
+poetry run troverai --canale rai-movie --tipo Film          # Only films
+poetry run troverai --canale rai-movie --genere Commedia    # Only comedies
+poetry run troverai --ora --tipo Film                       # Films on air now
+
 # Run as module
 poetry run python -m troverai --help
 

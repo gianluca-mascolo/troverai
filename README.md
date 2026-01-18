@@ -57,6 +57,33 @@ poetry run troverai --cerca "film"
 poetry run troverai --cerca "TG" --data domani
 ```
 
+### Filtra per tipologia e genere
+
+È possibile filtrare i programmi per tipologia (`--tipo`) e/o genere (`--genere`):
+
+```bash
+# Solo film su Rai Movie
+poetry run troverai --canale rai-movie --tipo Film
+
+# Solo commedie
+poetry run troverai --canale rai-movie --genere Commedia
+
+# Film drammatici
+poetry run troverai --canale rai-movie --tipo Film --genere Drammatico
+
+# Film in onda adesso su tutti i canali
+poetry run troverai --ora --tipo Film
+
+# Film in prima serata
+poetry run troverai --prima-serata --tipo Film
+```
+
+**Tipologie disponibili:** Film, ProgrammiTv, SerieTV
+
+**Generi disponibili:** Commedia, Drammatico, AzioneAvventura, Thriller, Fantascienza, Horror, Animazione, Documentario, e altri.
+
+> **Nota:** I filtri non sono case-sensitive (`film` e `Film` sono equivalenti).
+
 ### Lista canali disponibili
 
 ```bash
@@ -75,6 +102,8 @@ poetry run troverai --canali
 | `--data DATA` | `-d DATA` | Data (oggi/domani/ieri/dd-mm-yyyy) |
 | `--dalle HH:MM` | | Filtra programmi a partire da un orario |
 | `--alle HH:MM` | | Filtra programmi fino a un orario |
+| `--tipo TIPO` | `-t TIPO` | Filtra per tipologia (Film, ProgrammiTv, SerieTV) |
+| `--genere GENERE` | `-g GENERE` | Filtra per genere (Commedia, Drammatico, ecc.) |
 | `--compatto` | | Formato di output compatto |
 | `--json` | | Output in formato JSON (dati API grezzi) |
 
