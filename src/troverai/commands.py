@@ -25,7 +25,7 @@ from .utils import (
 def cmd_schedule(args):
     """Show schedule for a channel."""
     channel = normalize_channel(args.canale)
-    date = parse_date(args.data)
+    date = parse_date(args.data if args.data else "oggi")
 
     if not args.json:
         print(f"{COLOR_CYAN_BOLD}=== {args.canale.upper()} - {date} ==={COLOR_RESET}\n")
@@ -76,8 +76,18 @@ def cmd_schedule(args):
 
 
 def cmd_now(args):
-    """Show what's currently on air (or schedule for specified date)."""
-    date = parse_date(args.data)
+    """Show what's currently on air (or full schedule if filters are set)."""
+    # Show current only when no filter flags are passed
+    # If any filter is explicit (--data, --tipo, --genere, --dalle, --alle), show full schedule
+    has_filters = any([
+        args.data,
+        args.tipo,
+        args.genere,
+        getattr(args, 'dalle', None),
+        getattr(args, 'alle', None),
+    ])
+    show_current_only = not has_filters
+    date = parse_date(args.data if args.data else "oggi")
     is_today = date == datetime.now().strftime("%d-%m-%Y")
 
     # Main channels to check
@@ -106,7 +116,7 @@ def cmd_now(args):
     json_data = {}
 
     if not args.json:
-        if is_today:
+        if show_current_only and is_today:
             print(
                 f"{COLOR_CYAN_BOLD}=== Ora in onda - {datetime.now().strftime('%H:%M')} ==={COLOR_RESET}\n"
             )
@@ -127,8 +137,8 @@ def cmd_now(args):
             json_data[channel] = data
             continue
 
-        # For terminal output, show current program (if today) or full schedule
-        if is_today:
+        # For terminal output, show current program only or full schedule
+        if show_current_only and is_today:
             current_prog = find_current_program(events)
 
             # Filter by typology/genre
@@ -208,7 +218,7 @@ def cmd_channels(args):
 
 def cmd_prime_time(args):
     """Show prime time schedule (20:00-23:00) for main channels."""
-    date = parse_date(args.data)
+    date = parse_date(args.data if args.data else "oggi")
     main_channels = ["rai-1", "rai-2", "rai-3"]
 
     # Collect raw data for JSON output
@@ -261,7 +271,7 @@ def cmd_prime_time(args):
 
 def cmd_search(args):
     """Search for a program in today's schedule."""
-    date = parse_date(args.data)
+    date = parse_date(args.data if args.data else "oggi")
     search_term = args.cerca.lower()
 
     channels = [
