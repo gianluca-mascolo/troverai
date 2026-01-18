@@ -315,11 +315,11 @@ def output_json(data):
 
 
 def cmd_now(args):
-    """Show what's currently on air."""
+    """Show what's currently on air (or schedule for specified date)."""
     session = get_session()
 
-    # Use schedule data instead of oraInOnda.json (which can be stale)
-    today = datetime.now().strftime("%d-%m-%Y")
+    date = parse_date(args.data)
+    is_today = date == datetime.now().strftime("%d-%m-%Y")
 
     # Main channels to check
     all_channels = [
@@ -333,14 +333,17 @@ def cmd_now(args):
         filter_channel = normalize_channel(args.canale)
         all_channels = [c for c in all_channels if filter_channel in c]
 
-    # Collect programs for JSON output
-    json_programs = []
+    # Collect data for JSON output
+    json_data = {}
 
     if not args.json:
-        print(f"{COLOR_CYAN_BOLD}=== Ora in onda - {datetime.now().strftime('%H:%M')} ==={COLOR_RESET}\n")
+        if is_today:
+            print(f"{COLOR_CYAN_BOLD}=== Ora in onda - {datetime.now().strftime('%H:%M')} ==={COLOR_RESET}\n")
+        else:
+            print(f"{COLOR_CYAN_BOLD}=== Palinsesto - {date} ==={COLOR_RESET}\n")
 
     for channel in all_channels:
-        data = fetch_schedule(session, channel, today)
+        data = fetch_schedule(session, channel, date)
 
         if not data:
             continue
@@ -348,17 +351,21 @@ def cmd_now(args):
         channel_name = data.get("channel", channel)
         events = data.get("events", [])
 
-        current_prog = find_current_program(events)
+        # For JSON output, collect full raw data
+        if args.json:
+            json_data[channel] = data
+            continue
 
-        # Filter by typology/genre
-        if current_prog:
-            filtered = filter_by_dfp([current_prog], args.tipo, args.genere)
-            current_prog = filtered[0] if filtered else None
+        # For terminal output, show current program (if today) or full schedule
+        if is_today:
+            current_prog = find_current_program(events)
 
-        if current_prog:
-            if args.json:
-                json_programs.append(current_prog)
-            else:
+            # Filter by typology/genre
+            if current_prog:
+                filtered = filter_by_dfp([current_prog], args.tipo, args.genere)
+                current_prog = filtered[0] if filtered else None
+
+            if current_prog:
                 name = current_prog.get("name", "Unknown")
                 time = current_prog.get("hour", "")
                 duration = format_duration(current_prog.get("duration", ""))
@@ -379,9 +386,29 @@ def cmd_now(args):
                             description = description[:117] + "..."
                         print(f"  {COLOR_ITALIC}{description}{COLOR_RESET}")
                     print()
+        else:
+            # Show full schedule for non-today dates
+            # Filter by typology/genre
+            events = filter_by_dfp(events, args.tipo, args.genere)
+
+            print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
+            for event in events:
+                if event:
+                    name = event.get("name", "Unknown")
+                    time = event.get("hour", "??:??")
+                    duration = format_duration(event.get("duration", ""))
+
+                    if args.compatto:
+                        print(f"  {time} {name}")
+                    else:
+                        if duration:
+                            print(f"  {time} - {name} ({duration})")
+                        else:
+                            print(f"  {time} - {name}")
+            print()
 
     if args.json:
-        output_json(json_programs)
+        output_json(json_data)
 
 
 def cmd_channels(args):
