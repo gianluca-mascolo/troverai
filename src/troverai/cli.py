@@ -2,7 +2,6 @@
 TroveRAI CLI - TV Schedule viewer for RaiPlay
 
 Fetches and displays TV schedules from RaiPlay.
-Requires authentication (run raiplay_auth.py --login first).
 """
 
 import argparse
@@ -10,13 +9,8 @@ import json
 import os
 import sys
 from datetime import datetime, timedelta
-from pathlib import Path
 
 import requests
-
-# Constants
-# Token file is expected in current working directory
-TOKEN_FILE = Path.cwd() / "raiplay_tokens.json"
 
 # Color support (respect NO_COLOR environment variable)
 # https://no-color.org
@@ -35,7 +29,7 @@ else:
     COLOR_YELLOW_BOLD = "\033[1;33m"
     COLOR_GREEN_BOLD = "\033[1;32m"
 
-PALINSESTO_URL = "https://www.raiplay.it/palinsesto/app/old"
+PALINSESTO_URL = "https://www.raiplay.it/palinsesto/app"
 ORA_IN_ONDA_URL = "https://www.raiplay.it/dl/palinsesti/oraInOnda.json"
 CHANNELS_URL = "https://www.raiplay.it/guidatv.json"
 
@@ -57,24 +51,11 @@ CHANNEL_MAP = {
 }
 
 
-def load_tokens():
-    """Load authentication tokens from file."""
-    if not TOKEN_FILE.exists():
-        print("Error: Not authenticated. Run 'raiplay_auth.py --login' first.", file=sys.stderr)
-        sys.exit(1)
-
-    with open(TOKEN_FILE) as f:
-        return json.load(f)
-
-
 def get_session():
-    """Create an authenticated requests session."""
-    tokens = load_tokens()
-
+    """Create a requests session."""
     session = requests.Session()
     session.headers.update({
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Authorization": f"Bearer {tokens['jwt_token']}",
         "Accept": "application/json"
     })
     return session
@@ -212,14 +193,9 @@ def is_current_program(time_str, duration_str):
 
 def print_program(prog, show_current=True, compact=False):
     """Print a single program entry."""
-    time = prog.get("timePublished", "??:??")
+    time = prog.get("hour", "??:??")
     duration = prog.get("duration", "")
-    name = prog.get("name", "")
-
-    # Get name from isPartOf if not directly available
-    if not name:
-        is_part_of = prog.get("isPartOf", {})
-        name = is_part_of.get("name", "Unknown")
+    name = prog.get("name", "Unknown")
 
     # Check if current
     is_current = is_current_program(time, duration) if show_current else False
@@ -241,16 +217,13 @@ def print_program(prog, show_current=True, compact=False):
 
         # Show subtitle/description for current program
         if is_current and not compact:
-            subtitle = prog.get("subtitle", "")
-            if not subtitle:
-                is_part_of = prog.get("isPartOf", {})
-                subtitle = is_part_of.get("description", "")
+            description = prog.get("description", "")
 
-            if subtitle:
+            if description:
                 # Truncate long descriptions
-                if len(subtitle) > 100:
-                    subtitle = subtitle[:97] + "..."
-                print(f"       {COLOR_ITALIC}{subtitle}{COLOR_RESET}")
+                if len(description) > 100:
+                    description = description[:97] + "..."
+                print(f"       {COLOR_ITALIC}{description}{COLOR_RESET}")
 
 
 def cmd_schedule(args):
@@ -277,42 +250,39 @@ def cmd_schedule(args):
         output_json(data)
         return
 
-    # Parse the nested structure for display
-    for channel_name, channel_data in data.items():
-        for day_data in channel_data:
-            for palinsesto in day_data.get("palinsesto", []):
-                programs = palinsesto.get("programmi", [])
+    # Parse the events array
+    events = data.get("events", [])
 
-                # Filter by time range if specified
-                if args.dalle or args.alle:
-                    filtered = []
-                    for prog in programs:
-                        time = prog.get("timePublished", "00:00")
-                        if args.dalle and time < args.dalle:
-                            continue
-                        if args.alle and time > args.alle:
-                            continue
-                        filtered.append(prog)
-                    programs = filtered
+    # Filter by time range if specified
+    if args.dalle or args.alle:
+        filtered = []
+        for event in events:
+            time = event.get("hour", "00:00")
+            if args.dalle and time < args.dalle:
+                continue
+            if args.alle and time > args.alle:
+                continue
+            filtered.append(event)
+        events = filtered
 
-                # Show programs
-                for prog in programs:
-                    if prog:  # Skip empty entries
-                        print_program(prog, show_current=(date == datetime.now().strftime("%d-%m-%Y")),
-                                     compact=args.compatto)
+    # Show programs
+    for event in events:
+        if event:  # Skip empty entries
+            print_program(event, show_current=(date == datetime.now().strftime("%d-%m-%Y")),
+                         compact=args.compatto)
 
-                if not programs:
-                    print("No programs found for the specified time range.")
+    if not events:
+        print("No programs found for the specified time range.")
 
 
-def find_current_program(programs):
-    """Find the currently airing program from a list of programs."""
-    for prog in programs:
-        if prog:
-            time_str = prog.get("timePublished", "")
-            duration_str = prog.get("duration", "")
+def find_current_program(events):
+    """Find the currently airing program from a list of events."""
+    for event in events:
+        if event:
+            time_str = event.get("hour", "")
+            duration_str = event.get("duration", "")
             if is_current_program(time_str, duration_str):
-                return prog
+                return event
     return None
 
 
@@ -352,40 +322,35 @@ def cmd_now(args):
         if not data:
             continue
 
-        for channel_name, channel_data in data.items():
-            for day_data in channel_data:
-                for palinsesto in day_data.get("palinsesto", []):
-                    programs = palinsesto.get("programmi", [])
+        channel_name = data.get("channel", channel)
+        events = data.get("events", [])
 
-                    current_prog = find_current_program(programs)
+        current_prog = find_current_program(events)
 
-                    if current_prog:
-                        if args.json:
-                            json_programs.append(current_prog)
-                        else:
-                            name = current_prog.get("name", "")
-                            if not name:
-                                name = current_prog.get("isPartOf", {}).get("name", "Unknown")
+        if current_prog:
+            if args.json:
+                json_programs.append(current_prog)
+            else:
+                name = current_prog.get("name", "Unknown")
+                time = current_prog.get("hour", "")
+                duration = format_duration(current_prog.get("duration", ""))
 
-                            time = current_prog.get("timePublished", "")
-                            duration = format_duration(current_prog.get("duration", ""))
+                if args.compatto:
+                    print(f"{channel_name}: {name}")
+                else:
+                    print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
+                    if duration:
+                        print(f"  {time} - {COLOR_BOLD}{name}{COLOR_RESET} ({duration})")
+                    else:
+                        print(f"  {time} - {COLOR_BOLD}{name}{COLOR_RESET}")
 
-                            if args.compatto:
-                                print(f"{channel_name}: {name}")
-                            else:
-                                print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
-                                if duration:
-                                    print(f"  {time} - {COLOR_BOLD}{name}{COLOR_RESET} ({duration})")
-                                else:
-                                    print(f"  {time} - {COLOR_BOLD}{name}{COLOR_RESET}")
-
-                                # Show description
-                                description = current_prog.get("isPartOf", {}).get("description", "")
-                                if description:
-                                    if len(description) > 120:
-                                        description = description[:117] + "..."
-                                    print(f"  {COLOR_ITALIC}{description}{COLOR_RESET}")
-                                print()
+                    # Show description
+                    description = current_prog.get("description", "")
+                    if description:
+                        if len(description) > 120:
+                            description = description[:117] + "..."
+                        print(f"  {COLOR_ITALIC}{description}{COLOR_RESET}")
+                    print()
 
     if args.json:
         output_json(json_programs)
@@ -437,32 +402,29 @@ def cmd_prime_time(args):
         if args.json:
             json_data[channel] = data
 
-        for channel_name, channel_data in data.items():
-            if not args.json:
-                print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
+        channel_name = data.get("channel", channel)
+        events = data.get("events", [])
 
-            for day_data in channel_data:
-                for palinsesto in day_data.get("palinsesto", []):
-                    programs = palinsesto.get("programmi", [])
+        if not args.json:
+            print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET}")
 
-                    # Filter for prime time (20:00 - 23:59)
-                    for prog in programs:
-                        if prog:
-                            time = prog.get("timePublished", "00:00")
-                            if "20:" <= time <= "23:59":
-                                if not args.json:
-                                    name = prog.get("name", "")
-                                    if not name:
-                                        name = prog.get("isPartOf", {}).get("name", "Unknown")
-                                    duration = format_duration(prog.get("duration", ""))
+        # Filter for prime time (20:00 - 23:59)
+        for event in events:
+            if event:
+                time = event.get("hour", "00:00")
+                if "20:" <= time <= "23:59":
+                    if not args.json:
+                        name = event.get("name", "Unknown")
+                        duration = format_duration(event.get("duration", ""))
 
-                                    print(f"  {time} - {name}", end="")
-                                    if duration:
-                                        print(f" ({duration})")
-                                    else:
-                                        print()
-            if not args.json:
-                print()
+                        print(f"  {time} - {name}", end="")
+                        if duration:
+                            print(f" ({duration})")
+                        else:
+                            print()
+
+        if not args.json:
+            print()
 
     if args.json:
         output_json(json_data)
@@ -492,32 +454,28 @@ def cmd_search(args):
         if not data:
             continue
 
-        for channel_name, channel_data in data.items():
-            for day_data in channel_data:
-                for palinsesto in day_data.get("palinsesto", []):
-                    programs = palinsesto.get("programmi", [])
+        channel_name = data.get("channel", channel)
+        events = data.get("events", [])
 
-                    for prog in programs:
-                        if prog:
-                            name = prog.get("name", "")
-                            if not name:
-                                name = prog.get("isPartOf", {}).get("name", "")
+        for event in events:
+            if event:
+                name = event.get("name", "")
 
-                            if search_term in name.lower():
-                                found = True
-                                if args.json:
-                                    json_programs.append(prog)
-                                else:
-                                    time = prog.get("timePublished", "??:??")
-                                    duration = format_duration(prog.get("duration", ""))
+                if search_term in name.lower():
+                    found = True
+                    if args.json:
+                        json_programs.append(event)
+                    else:
+                        time = event.get("hour", "??:??")
+                        duration = format_duration(event.get("duration", ""))
 
-                                    print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET} - {time}")
-                                    print(f"  {COLOR_BOLD}{name}{COLOR_RESET}", end="")
-                                    if duration:
-                                        print(f" ({duration})")
-                                    else:
-                                        print()
-                                    print()
+                        print(f"{COLOR_YELLOW_BOLD}{channel_name}{COLOR_RESET} - {time}")
+                        print(f"  {COLOR_BOLD}{name}{COLOR_RESET}", end="")
+                        if duration:
+                            print(f" ({duration})")
+                        else:
+                            print()
+                        print()
 
     if args.json:
         output_json(json_programs)

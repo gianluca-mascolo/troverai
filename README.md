@@ -10,7 +10,6 @@ Questo progetto nasce come esperimento di [vibe coding](https://en.wikipedia.org
 
 - Python >= 3.10
 - Poetry (per la gestione delle dipendenze)
-- Un account RaiPlay valido
 
 ## Installazione
 
@@ -20,24 +19,9 @@ cd troverai
 poetry install
 ```
 
-## Autenticazione
-
-Prima di utilizzare TroveRAI è necessario autenticarsi con le proprie credenziali RaiPlay.
-
-1. Crea un file `.env` nella cartella del progetto:
-```
-RAIPLAY_USERNAME="tua.email@esempio.com"
-RAIPLAY_PASSWORD="tuapassword"
-```
-
-2. Esegui lo script di autenticazione:
-```bash
-python SperimenteRAI/raiplay_auth.py --login
-```
-
-Questo creerà un file `raiplay_tokens.json` con i token di accesso.
-
 ## Utilizzo
+
+> **Nota:** TroveRAI non richiede autenticazione. Le API del palinsesto RaiPlay sono pubbliche.
 
 ### Cosa c'è in onda adesso
 
@@ -143,8 +127,7 @@ troverai/
 │   ├── cli.py          # Implementazione CLI
 │   ├── __main__.py     # Entry point per python -m
 │   └── __init__.py     # Metadata del package
-├── SperimenteRAI/      # Script sperimentali
-│   └── raiplay_auth.py # Autenticazione RaiPlay
+├── SperimenteRAI/      # Script sperimentali (non necessari per il CLI)
 ├── pyproject.toml      # Configurazione Poetry
 └── README.md
 ```
