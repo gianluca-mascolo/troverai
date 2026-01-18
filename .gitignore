@@ -239,6 +239,7 @@ tags
 
 # Claude Code local settings
 .claude/
+.mcp.json
 
 # Environment variants (covers .env.local, .env.production, etc.)
 .env*
